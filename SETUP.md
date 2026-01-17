@@ -1,344 +1,161 @@
-# 🚀 Guide de Setup Complet - AI Governance MCP
+# 🚀 Guide d'Installation et Configuration - AI Governance MCP
 
-Ce guide te montre comment setup le MCP de A à Z pour qu'il fonctionne automatiquement avec tes agents IA.
+Ce guide explique comment installer le serveur MCP et configurer vos agents IA (Claude, Cursor, Gemini, etc.) pour utiliser les règles de gouvernance.
 
 ---
 
 ## 📋 Prérequis
 
-- Node.js >= 18.0.0
-- Git
-- Claude Desktop, Gemini CLI, ou autre agent compatible MCP
-- Un compte GitHub (pour héberger le MCP)
+- **Node.js** >= 18.0.0
+- **Git**
+- Un agent compatible MCP (Claude Desktop, Cursor, Gemini CLI, etc.)
 
 ---
 
-## 🎯 ÉTAPE 1 : Créer le Repository
+## 🎯 ÉTAPE 1 : Installation du Serveur (Une seule fois)
 
-### Sur GitHub
+Cette étape installe le serveur MCP sur votre machine. Vous n'avez besoin de le faire qu'une seule fois.
 
-```bash
-# Crée le repo sur GitHub (via web ou CLI)
-gh repo create ai-governance-mcp --public --clone
-
-# Ou manuellement : crée sur github.com puis clone
-git clone https://github.com/TON-USERNAME/ai-governance-mcp.git
-```
-
-### Structure Initiale
+### 1. Cloner le dépôt
 
 ```bash
+git clone https://github.com/ton-username/ai-governance-mcp.git
 cd ai-governance-mcp
-
-# Crée la structure
-mkdir -p src rules hooks
-
-# Crée les fichiers de base
-touch package.json
-touch README.md
-touch src/index.js
-touch rules/light.md
-touch rules/standard.md
-touch rules/strict.md
-touch hooks/pre-commit
-touch hooks/commit-msg
-touch hooks/pre-push
 ```
 
----
-
-## 🎯 ÉTAPE 2 : Copier les Fichiers
-
-### package.json
-
-Copie le contenu du fichier `package.json` que je t'ai fourni.
-
-### src/index.js
-
-Copie le contenu complet du serveur MCP.
-
-### Les 3 fichiers de règles
+### 2. Installer les dépendances
 
 ```bash
-# Copie tes 3 fichiers de gouvernance
-cp /chemin/vers/gouvernance-light.md rules/light.md
-cp /chemin/vers/gouvernance-standard.md rules/standard.md
-cp /chemin/vers/gouvernance-strict.md rules/strict.md
-```
-
-### Les Git Hooks
-
-Copie le contenu des 3 hooks (pre-commit, commit-msg, pre-push).
-
-### README.md
-
-Copie le README complet.
-
----
-
-## 🎯 ÉTAPE 3 : Installation
-
-```bash
-# Installe les dépendances
 npm install
-
-# Vérifie que tout fonctionne
-npm start
-
-# Tu devrais voir :
-# AI Governance MCP Server running
 ```
 
-**Si ça fonctionne, le serveur MCP est prêt ! 🎉**
+### 3. Préparer les règles (Optionnel)
 
-Arrête le serveur (Ctrl+C).
-
----
-
-## 🎯 ÉTAPE 4 : Configuration Claude Desktop
-
-### Localise le fichier de config
-
-**macOS :**
-```bash
-~/Library/Application\ Support/Claude/claude_desktop_config.json
-```
-
-**Windows :**
-```bash
-%APPDATA%\Claude\claude_desktop_config.json
-```
-
-**Linux :**
-```bash
-~/.config/Claude/claude_desktop_config.json
-```
-
-### Édite la configuration
+Le MCP vient avec des règles par défaut, mais vous pouvez copier vos propres fichiers de règles dans le dossier `rules/`.
 
 ```bash
-# Ouvre avec ton éditeur
-code ~/Library/Application\ Support/Claude/claude_desktop_config.json
-
-# Ou
-nano ~/Library/Application\ Support/Claude/claude_desktop_config.json
+# Exemple : Copie vos règles personnelles
+cp /mon/chemin/vers/mes-regles-light.md rules/light.md
+cp /mon/chemin/vers/mes-regles-standard.md rules/standard.md
+cp /mon/chemin/vers/mes-regles-strict.md rules/strict.md
 ```
 
-### Ajoute le MCP
+### 4. Obtenir le chemin absolu
 
-```json
-{
-  "mcpServers": {
-    "ai-governance": {
-      "command": "node",
-      "args": [
-        "/Users/TON-USER/ai-governance-mcp/src/index.js"
-      ],
-      "env": {}
-    }
-  }
-}
-```
+Vous en aurez besoin pour la configuration.
 
-**⚠️ IMPORTANT : Utilise le CHEMIN ABSOLU vers ton fichier src/index.js**
-
-Pour obtenir le chemin absolu :
 ```bash
-cd ai-governance-mcp
 pwd
-# Copie le résultat et ajoute /src/index.js
+# Copiez le chemin affiché (ex: /home/user/dev/ai-governance-mcp)
 ```
 
-### Si tu as déjà d'autres MCP
+---
+
+## 🎯 ÉTAPE 2 : Configuration de votre Agent
+
+Configurez votre agent préféré pour qu'il puisse communiquer avec le serveur MCP.
+
+### Option A : Claude Desktop
+
+1. Ouvrez le fichier de configuration :
+   - **macOS :** `~/Library/Application Support/Claude/claude_desktop_config.json`
+   - **Windows :** `%APPDATA%\Claude\claude_desktop_config.json`
+   - **Linux :** `~/.config/Claude/claude_desktop_config.json`
+
+2. Ajoutez le serveur MCP (remplacez `/CHEMIN/ABSOLU` par le chemin obtenu à l'étape 1) :
 
 ```json
 {
   "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/projects"]
-    },
-    "github": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-github"],
-      "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "your-token"
-      }
-    },
     "ai-governance": {
       "command": "node",
-      "args": ["/Users/TON-USER/ai-governance-mcp/src/index.js"]
+      "args": ["/CHEMIN/ABSOLU/vers/ai-governance-mcp/src/index.js"]
     }
   }
 }
 ```
 
----
+3. Redémarrez Claude Desktop.
 
-## 🎯 ÉTAPE 5 : Tester le MCP
+### Option B : Gemini CLI / Autres
 
-### Redémarre Claude Desktop
-
-Ferme complètement Claude Desktop et relance-le.
-
-### Vérifie que le MCP est chargé
-
-Dans Claude, tape :
-
-```
-Liste les MCP servers disponibles
-```
-
-Tu devrais voir `ai-governance` dans la liste.
-
-### Test de base
-
-```
-Utilise le tool detect_mode
-```
-
-Si ça fonctionne, Claude devrait répondre avec le mode détecté !
+La plupart des agents CLI peuvent être configurés via des arguments ou des fichiers de config. Assurez-vous simplement de lancer le script `src/index.js` avec `node` comme serveur MCP.
 
 ---
 
-## 🎯 ÉTAPE 6 : Premier Projet de Test
+## 🎯 ÉTAPE 3 : Utilisation dans un Projet (Workflow v2)
 
-### Crée un projet test
+Une fois le serveur installé, voici comment l'utiliser dans vos projets quotidiens.
+
+### 1. Initialiser un projet
+
+Dans n'importe quel projet où vous voulez de la gouvernance IA :
+
+1. Ouvrez votre agent (Claude, Gemini, Cursor).
+2. Lancez la commande de configuration :
+
+```
+Toi: Utilise le tool config avec agent="auto" et mode="standard"
+```
+
+### 2. Ce que fait la commande `config`
+
+L'agent va automatiquement :
+1. **Détecter votre environnement** (Claude, Gemini, Cursor, etc.).
+2. **Créer le dossier de configuration** (ex: `.gemini/`, `.cursor/`, `.claude/`).
+3. **Copier les règles de gouvernance** dans ce dossier (fichier `GOVERNANCE.md`).
+4. **Créer/Mettre à jour le fichier de contexte** du projet (ex: `GEMINI.md`, `cursorrules`) avec un header obligatoire qui force l'IA à lire les règles.
+
+### 3. Exemple : Nouveau projet avec Gemini
 
 ```bash
-cd ~/projets
-mkdir test-governance
-cd test-governance
-git init
-```
-
-### Configure le mode
-
-```bash
-# Mode standard (par défaut)
-echo '{"mode": "standard"}' > .ai-governance.json
-
-# Ou laisse vide, standard sera utilisé
-```
-
-### Lance Claude et teste
-
-```
-Toi: Utilise detect_mode
-
-Claude: [Exécute le tool]
-📋 Mode de gouvernance détecté
-Projet: test-governance
-Mode actuel: STANDARD ⚙️
-```
-
-### Teste le switch de mode
-
-```
-Toi: Passe en mode strict
-
-Claude: [Exécute switch_mode]
-✅ Mode changé: STANDARD → STRICT 🔒
-```
-
-### Installe les hooks
-
-```
-Toi: Installe les git hooks
-
-Claude: [Exécute install_hooks]
-✅ Git hooks installés
-```
-
-### Teste les règles
-
-```
-Toi: Ajoute une fonction pour calculer la somme de deux nombres
-
-Claude: [Lit governance://current]
-📋 PLAN PROPOSÉ (mode STRICT détecté)
-
-1. Design
-   - Fonction pure `sum(a, b)`
-   - Validation des inputs
-   
-2. Tests prévus
-   - Test avec nombres positifs
-   - Test avec nombres négatifs
-   - Test avec zéros
-   
-3. Plan de rollback
-   - Simple revert du commit
-
-OK pour implémenter ?
-```
-
-**Si tout ça fonctionne, ton MCP est parfaitement configuré ! 🎉**
-
----
-
-## 🎯 ÉTAPE 7 : Push sur GitHub
-
-```bash
-cd ai-governance-mcp
-
-# Ignore node_modules
-echo "node_modules/" > .gitignore
-
-# Premier commit
-git add .
-git commit -m "feat: initial commit AI governance MCP"
-
-# Push
-git push origin main
-```
-
----
-
-## 🎯 ÉTAPE 8 : Utilisation Quotidienne
-
-### Sur un nouveau projet
-
-```bash
-# 1. Crée ton projet
-mkdir mon-app
-cd mon-app
+# 1. Créez votre projet
+mkdir mon-app && cd mon-app
 git init
 
-# 2. (Optionnel) Configure le mode
-echo '{"mode": "standard"}' > .ai-governance.json
+# 2. Lancez Gemini
+gemini chat
 
-# 3. Lance Claude
-# Les règles sont automatiquement appliquées !
+# 3. Configurez
+Toi: config agent=gemini mode=standard
+
+Gemini: ✅ Projet configuré pour GEMINI
+Mode: STANDARD ⚙️
+
+Fichiers créés:
+- .gemini/GOVERNANCE.md (règles complètes)
+- GEMINI.md (contexte projet + lien vers règles)
+- .ai-governance.json (config MCP)
 ```
 
-### Sur un projet existant
-
-```bash
-# 1. Va dans ton projet
-cd projet-existant
-
-# 2. Configure le mode
-echo '{"mode": "strict"}' > .ai-governance.json
-
-# 3. Demande à Claude d'installer les hooks
-# Toi: Installe les git hooks
-```
+Maintenant, à chaque fois que Gemini démarre dans ce dossier, il lira `GEMINI.md`, qui lui dira de lire `.gemini/GOVERNANCE.md`, et il appliquera vos règles !
 
 ---
 
-## 🔧 Configuration Avancée
+## 🎯 ÉTAPE 4 : Commandes Quotidiennes
 
-### Utiliser avec Gemini CLI
+Une fois configuré, vous avez accès à ces outils via votre agent :
 
-Si Gemini supporte MCP (vérifie leur doc), configure de la même manière.
+| Commande | Description |
+|---|---|
+| `config` | Configure ou reconfigure le projet (agent, mode). |
+| `detect_mode` | Affiche le mode actuel et l'état de la config. |
+| `switch_mode` | Change de mode (ex: standard -> strict) et met à jour les fichiers de règles localement. |
+| `install_hooks` | Installe les Git hooks pour vérifier les règles avant commit/push. |
+| `explain_mode` | Explique les différences entre les modes. |
 
-Sinon, tu peux lancer le serveur manuellement :
+---
 
-```bash
-# Terminal 1 : Lance le serveur MCP
-cd ai-governance-mcp
-npm start
+## ❓ Dépannage
 
-# Terminal 2 : Lance Gemini avec le serveur
-gemini chat --m
+### L'agent ne voit pas les règles
+
+**Solution :** Demandez `detect_mode`. Si le fichier de règles est marqué manquant, relancez `config`.
+
+### Les fichiers ne sont pas créés
+
+**Solution :** Vérifiez les permissions d'écriture dans le dossier du projet (`chmod +w .`).
+
+### Je veux changer de mode
+
+**Solution :** Dites simplement à l'agent : *"Passe en mode strict"*. Il utilisera `switch_mode` pour mettre à jour la configuration `.ai-governance.json` ET le fichier de règles local `GOVERNANCE.md`.
