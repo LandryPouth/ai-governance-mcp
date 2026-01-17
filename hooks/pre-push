@@ -1,0 +1,200 @@
+#!/bin/bash
+
+# Git hook pre-push pour AI Governance
+# Vérifications finales avant push vers remote
+
+set -e
+
+# Couleurs
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+# Détecte le mode
+if [ -f ".ai-governance.json" ]; then
+    MODE=$(grep -o '"mode"[[:space:]]*:[[:space:]]*"[^"]*"' .ai-governance.json | cut -d'"' -f4)
+else
+    MODE="standard"
+fi
+
+echo -e "${BLUE}🔍 Vérification pre-push (mode: $MODE)${NC}"
+
+# Récupère les infos du push
+remote="$1"
+url="$2"
+
+# Détecte la branche actuelle
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+echo "  → Branche: $CURRENT_BRANCH"
+echo "  → Remote: $remote"
+
+# ==================================================================
+# RÈGLES MODE LIGHT
+# ==================================================================
+
+if [[ "$MODE" == "light" ]]; then
+    # En mode light, on laisse passer
+    echo -e "${GREEN}✅ Push autorisé (mode light)${NC}"
+    exit 0
+fi
+
+# ==================================================================
+# RÈGLES MODE STANDARD
+# ==================================================================
+
+if [[ "$MODE" == "standard" ]]; then
+    
+    # Avertissement si push direct sur main/develop
+    if [[ "$CURRENT_BRANCH" == "main" ]] || [[ "$CURRENT_BRANCH" == "master" ]] || [[ "$CURRENT_BRANCH" == "develop" ]]; then
+        echo -e "${YELLOW}⚠️  Tu es sur la branche $CURRENT_BRANCH${NC}"
+        echo ""
+        echo "En mode STANDARD, il est recommandé de:"
+        echo "  1. Créer une branche feature/fix"
+        echo "  2. Push cette branche"
+        echo "  3. Faire une Pull Request"
+        echo ""
+        read -p "Continuer le push sur $CURRENT_BRANCH ? (y/N) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo "Push annulé."
+            exit 1
+        fi
+    fi
+    
+    # Vérifie que les tests passent
+    if [ -f "package.json" ] && grep -q "\"test\":" package.json; then
+        echo "  → Exécution des tests avant push..."
+        if ! npm test > /dev/null 2>&1; then
+            echo -e "${YELLOW}⚠️  Des tests échouent${NC}"
+            read -p "Pusher quand même ? (y/N) " -n 1 -r
+            echo
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                exit 1
+            fi
+        fi
+    fi
+    
+    echo -e "${GREEN}✅ Push autorisé${NC}"
+    exit 0
+fi
+
+# ==================================================================
+# RÈGLES MODE STRICT
+# ==================================================================
+
+if [[ "$MODE" == "strict" ]]; then
+    
+    # INTERDIT de push direct sur main/master/develop
+    if [[ "$CURRENT_BRANCH" == "main" ]] || [[ "$CURRENT_BRANCH" == "master" ]] || [[ "$CURRENT_BRANCH" == "develop" ]]; then
+        echo -e "${RED}❌ PUSH REFUSÉ${NC}"
+        echo ""
+        echo "En mode STRICT, le push direct sur $CURRENT_BRANCH est INTERDIT."
+        echo ""
+        echo "Workflow obligatoire:"
+        echo "  1. Crée une branche:"
+        echo "     git checkout -b feature/TICKET-123-description"
+        echo ""
+        echo "  2. Push la branche:"
+        echo "     git push origin feature/TICKET-123-description"
+        echo ""
+        echo "  3. Crée une Pull Request sur GitHub/GitLab"
+        echo ""
+        echo "  4. Merge via la PR (après review)"
+        echo ""
+        echo "Exception: Si tu es vraiment sûr (hotfix urgent), utilise:"
+        echo "  git push --no-verify"
+        exit 1
+    fi
+    
+    # Vérifie le format du nom de branche
+    BRANCH_PATTERN="^(feature|fix|refactor|hotfix|release)/[A-Z]+-[0-9]+-[a-z0-9-]+$"
+    if ! echo "$CURRENT_BRANCH" | grep -qE "$BRANCH_PATTERN"; then
+        echo -e "${YELLOW}⚠️  Format de branche non conventionnel${NC}"
+        echo ""
+        echo "Format attendu:"
+        echo "  feature/TICKET-123-description"
+        echo "  fix/BUG-456-correction"
+        echo "  refactor/TECH-789-amelioration"
+        echo ""
+        echo "Ta branche: $CURRENT_BRANCH"
+        echo ""
+        read -p "Continuer quand même ? (y/N) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo ""
+            echo "Renomme ta branche:"
+            echo "  git branch -m nouvelle-branche"
+            exit 1
+        fi
+    fi
+    
+    # OBLIGATOIRE : tests doivent passer
+    echo "  → Exécution des tests (obligatoire en mode strict)..."
+    if [ -f "package.json" ] && grep -q "\"test\":" package.json; then
+        if ! npm test; then
+            echo -e "${RED}❌ PUSH REFUSÉ - Tests échouent${NC}"
+            echo ""
+            echo "En mode STRICT, tous les tests doivent passer avant un push."
+            echo "Corrige les tests ou utilise --no-verify (déconseillé)."
+            exit 1
+        fi
+    fi
+    
+    # OBLIGATOIRE : lint doit passer
+    echo "  → Vérification du lint (obligatoire en mode strict)..."
+    if [ -f "package.json" ] && grep -q "\"lint\":" package.json; then
+        if ! npm run lint; then
+            echo -e "${RED}❌ PUSH REFUSÉ - Erreurs de lint${NC}"
+            echo ""
+            echo "Corrige les erreurs avec:"
+            echo "  npm run lint --fix"
+            exit 1
+        fi
+    fi
+    
+    # OBLIGATOIRE : build doit réussir
+    echo "  → Vérification du build (obligatoire en mode strict)..."
+    if [ -f "package.json" ] && grep -q "\"build\":" package.json; then
+        if ! npm run build > /dev/null 2>&1; then
+            echo -e "${RED}❌ PUSH REFUSÉ - Build échoue${NC}"
+            echo ""
+            echo "Le build doit réussir avant un push."
+            echo "Lance 'npm run build' pour voir les erreurs."
+            exit 1
+        fi
+    fi
+    
+    # Vérifie qu'il n'y a pas de fichiers volumineux
+    echo "  → Vérification des fichiers volumineux..."
+    MAX_SIZE=500000  # 500KB
+    LARGE_FILES=$(git diff --stat --cached origin/"$CURRENT_BRANCH" 2>/dev/null | grep -E "^\s+.+\|\s+[0-9]+" | while read line; do
+        file=$(echo "$line" | awk '{print $1}')
+        if [ -f "$file" ]; then
+            size=$(wc -c < "$file" 2>/dev/null || echo 0)
+            if [ "$size" -gt $MAX_SIZE ]; then
+                echo "$file ($((size / 1024))KB)"
+            fi
+        fi
+    done)
+    
+    if [ -n "$LARGE_FILES" ]; then
+        echo -e "${YELLOW}⚠️  Fichiers volumineux détectés:${NC}"
+        echo "$LARGE_FILES"
+        echo ""
+        echo "Considère utiliser Git LFS pour les gros fichiers."
+        read -p "Continuer quand même ? (y/N) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            exit 1
+        fi
+    fi
+    
+    echo -e "${GREEN}✅ Toutes les vérifications sont passées${NC}"
+    echo -e "${GREEN}✅ Push autorisé${NC}"
+    exit 0
+fi
+
+exit 0
