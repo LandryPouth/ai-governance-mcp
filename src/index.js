@@ -180,9 +180,11 @@ class AIGovernanceServer {
   generateHeader(agent, dir) {
     return `# Project Overview
 
-> **⚠️ GOVERNANCE MODE ACTIVE**  
-> Please read and follow **ALL** rules defined in \`${dir}/GOVERNANCE.md\` before any action.  
-> These rules are **MANDATORY** and take precedence over standard behaviors.`;
+This project uses AI Governance rules to ensure consistent development practices.
+
+> **🔴 IMPORTANT: GOVERNANCE ENFORCEMENT**
+> You **MUST** read the file \`${dir}/GOVERNANCE.md\` immediately at the start of every session to understand and apply the active strictness rules and workflow constraints.
+> Do not proceed with any code modification until you have ingested these rules.`;
   }
 
   /**
