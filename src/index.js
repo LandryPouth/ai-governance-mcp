@@ -401,12 +401,12 @@ Respond with:
 "✅ Governance rules loaded (${currentMode} mode). Ready to assist."
 
 **Available commands:**
-- \`/config\` - Configure project for your agent
-- \`/detect_mode\` - Check current mode
-- \`/switch_mode\` - Change governance mode
-- \`/explain_mode\` - Explain current rules
-- \`/install_hooks\` - Install git hooks
-- \`/help\` - Show all commands`,
+- \`/governance_config\` - Configure project for your agent
+- \`/governance_detect_mode\` - Check current mode
+- \`/governance_switch_mode\` - Change governance mode
+- \`/governance_explain_mode\` - Explain current rules
+- \`/governance_install_hooks\` - Install git hooks
+- \`/governance_help\` - Show all commands`,
               },
             },
           ],
@@ -443,10 +443,10 @@ Aucun fichier de configuration d'agent détecté dans ce projet.
 - \`continue\` - Continue
 
 **Usage:**
-\`/config agent=gemini mode=standard\`
+\`/governance_config agent=gemini mode=standard\`
 
 **Exemple:**
-Tape simplement: \`/config agent=gemini\``,
+Tape simplement: \`/governance_config agent=gemini\``,
                   },
                 },
               ],
@@ -467,7 +467,7 @@ Tape simplement: \`/config agent=gemini\``,
 **Agents valides:** ${Object.keys(AGENT_CONFIGS).join(", ")}
 
 **Usage:**
-\`/config agent=gemini mode=standard\``,
+\`/governance_config agent=gemini mode=standard\``,
                 },
               },
             ],
@@ -494,14 +494,14 @@ Tape simplement: \`/config agent=gemini\``,
 **Prochaines étapes:**
 1. Révise \`${config.file}\` et complète les informations du projet
 2. Lis \`${config.dir}/GOVERNANCE.md\` pour comprendre les règles
-3. Installe les git hooks: \`/install_hooks\`
+3. Installe les git hooks: \`/governance_install_hooks\`
 
 Les règles de gouvernance sont maintenant actives ! 🎉
 
 **Autres commandes utiles:**
-- \`/detect_mode\` - Vérifier le mode actuel
-- \`/explain_mode\` - Comprendre les règles
-- \`/help\` - Voir toutes les commandes`,
+- \`/governance_detect_mode\` - Vérifier le mode actuel
+- \`/governance_explain_mode\` - Comprendre les règles
+- \`/governance_help\` - Voir toutes les commandes`,
               },
             },
           ],
@@ -538,7 +538,7 @@ Les règles de gouvernance sont maintenant actives ! 🎉
           configInfo += `\n**Fichier de règles:** ${hasGov ? "✅" : "❌"} \`${agentConfig.dir}/GOVERNANCE.md\``;
 
           if (!hasGov) {
-            configInfo += `\n\n⚠️ Fichier de règles manquant. Lance \`/config agent=${agent}\` pour le créer.`;
+            configInfo += `\n\n⚠️ Fichier de règles manquant. Lance \`/governance_config agent=${agent}\` pour le créer.`;
           }
         }
 
@@ -555,9 +555,9 @@ Les règles de gouvernance sont maintenant actives ! 🎉
 **Config MCP:** ${hasConfig ? "✅" : "⚠️ Par défaut"}${configInfo}
 
 **Commandes utiles:**
-- \`/switch_mode mode=strict\` - Changer de mode
-- \`/explain_mode\` - Comprendre les règles
-- \`/install_hooks\` - Installer les git hooks`,
+- \`/governance_switch_mode mode=strict\` - Changer de mode
+- \`/governance_explain_mode\` - Comprendre les règles
+- \`/governance_install_hooks\` - Installer les git hooks`,
               },
             },
           ],
@@ -580,7 +580,7 @@ Les règles de gouvernance sont maintenant actives ! 🎉
                   text: `❌ **Mode invalide**
 
 **Usage:**
-\`/switch_mode mode=strict\`
+\`/governance_switch_mode mode=strict\`
 
 **Modes valides:**
 - \`light\` - Prototypage rapide ⚡
@@ -604,8 +604,8 @@ Les règles de gouvernance sont maintenant actives ! 🎉
                   text: `ℹ️ Le projet est déjà en mode **${newMode.toUpperCase()}**.
 
 **Autres commandes:**
-- \`/detect_mode\` - Voir le statut actuel
-- \`/explain_mode\` - Comprendre les règles`,
+- \`/governance_detect_mode\` - Voir le statut actuel
+- \`/governance_explain_mode\` - Comprendre les règles`,
                 },
               },
             ],
@@ -640,9 +640,9 @@ Les règles de gouvernance sont maintenant actives ! 🎉
 **Fichiers mis à jour:**
 ${filesUpdated.length > 0 ? filesUpdated.map((f) => `- ${f}`).join("\n") : "- .ai-governance.json uniquement"}
 
-${newMode === "strict" ? "\n⚠️ **Mode STRICT activé** - Installe les git hooks: `/install_hooks`" : ""}
+${newMode === "strict" ? "\n⚠️ **Mode STRICT activé** - Installe les git hooks: `/governance_install_hooks`" : ""}
 
-Les nouvelles règles sont maintenant actives. Tape \`/explain_mode\` pour les découvrir.`,
+Les nouvelles règles sont maintenant actives. Tape \`/governance_explain_mode\` pour les découvrir.`,
               },
             },
           ],
@@ -696,9 +696,9 @@ ${rules}
 ---
 
 **Commandes utiles:**
-- \`/switch_mode mode=autre\` - Changer de mode
-- \`/install_hooks\` - Installer les git hooks
-- \`/detect_mode\` - Voir le statut`,
+- \`/governance_switch_mode mode=autre\` - Changer de mode
+- \`/governance_install_hooks\` - Installer les git hooks
+- \`/governance_detect_mode\` - Voir le statut`,
               },
             },
           ],
@@ -730,7 +730,7 @@ Initialise d'abord Git avec:
 git init
 \`\`\`
 
-Puis relance: \`/install_hooks\``,
+Puis relance: \`/governance_install_hooks\``,
                 },
               },
             ],
@@ -769,7 +769,7 @@ Puis relance: \`/install_hooks\``,
 
         if (skipped.length > 0) {
           message += `**Ignorés (déjà présents):**\n${skipped.map((h) => `- ${h}`).join("\n")}\n\n`;
-          message += "Pour écraser: `/install_hooks force=true`\n\n";
+          message += "Pour écraser: `/governance_install_hooks force=true`\n\n";
         }
 
         message += `**Mode:** ${mode.toUpperCase()}\n`;
@@ -801,22 +801,22 @@ Puis relance: \`/install_hooks\``,
                 text: `📚 **AI Governance MCP - Commandes disponibles**
 
 **🚀 Setup & Configuration**
-- \`/init\` - Charge les règles de gouvernance au démarrage
-- \`/config agent=gemini mode=standard\` - Configure le projet
+- \`/governance_init\` - Charge les règles de gouvernance au démarrage
+- \`/governance_config agent=gemini mode=standard\` - Configure le projet
   → Agents: claude, cursor, gemini, aider, continue, auto
   → Modes: light, standard, strict
 
 **🔍 Information**
-- \`/detect_mode\` - Affiche le mode actuel du projet
-- \`/explain_mode\` - Explique les règles du mode actuel
+- \`/governance_detect_mode\` - Affiche le mode actuel du projet
+- \`/governance_explain_mode\` - Explique les règles du mode actuel
 
 **🔄 Modification**
-- \`/switch_mode mode=strict\` - Change le mode de gouvernance
-- \`/install_hooks\` - Installe les git hooks
-- \`/install_hooks force=true\` - Force l'installation
+- \`/governance_switch_mode mode=strict\` - Change le mode de gouvernance
+- \`/governance_install_hooks\` - Installe les git hooks
+- \`/governance_install_hooks force=true\` - Force l'installation
 
 **❓ Aide**
-- \`/help\` - Affiche cette aide
+- \`/governance_help\` - Affiche cette aide
 
 ---
 
@@ -824,25 +824,25 @@ Puis relance: \`/install_hooks\``,
 
 1. **Nouveau projet:**
    \`\`\`
-   /config agent=gemini mode=standard
-   /install_hooks
+   /governance_config agent=gemini mode=standard
+   /governance_install_hooks
    \`\`\`
 
 2. **Projet existant:**
    \`\`\`
-   /detect_mode
-   /explain_mode
+   /governance_detect_mode
+   /governance_explain_mode
    \`\`\`
 
 3. **Changer de mode:**
    \`\`\`
-   /switch_mode mode=strict
+   /governance_switch_mode mode=strict
    \`\`\`
 
 ---
 
 **Raccourcis:**
-- \`/config\` seul = détection auto de l'agent
+- \`/governance_config\` seul = détection auto de l'agent
 - Mode par défaut = standard`,
               },
             },
@@ -863,7 +863,7 @@ Puis relance: \`/install_hooks\``,
           {
             name: "_deprecated_use_slash_commands",
             description:
-              "⚠️ Les tools sont dépréciés. Utilisez les slash commands: /config, /detect_mode, /switch_mode, /explain_mode, /install_hooks, /help",
+              "⚠️ Les tools sont dépréciés. Utilisez les slash commands: /governance_config, /governance_detect_mode, /governance_switch_mode, /governance_explain_mode, /governance_install_hooks, /governance_help",
             inputSchema: {
               type: "object",
               properties: {},
@@ -882,13 +882,13 @@ Puis relance: \`/install_hooks\``,
 
 Utilisez maintenant les **slash commands** à la place:
 
-- \`/config\` au lieu de \`config()\`
-- \`/detect_mode\` au lieu de \`detect_mode()\`
-- \`/switch_mode mode=strict\` au lieu de \`switch_mode()\`
-- \`/explain_mode\` au lieu de \`explain_mode()\`
-- \`/install_hooks\` au lieu de \`install_hooks()\`
+- \`/governance_config\` au lieu de \`config()\`
+- \`/governance_detect_mode\` au lieu de \`detect_mode()\`
+- \`/governance_switch_mode mode=strict\` au lieu de \`switch_mode()\`
+- \`/governance_explain_mode\` au lieu de \`explain_mode()\`
+- \`/governance_install_hooks\` au lieu de \`install_hooks()\`
 
-Tape \`/help\` pour voir toutes les commandes disponibles.`,
+Tape \`/governance_help\` pour voir toutes les commandes disponibles.`,
           },
         ],
       };
