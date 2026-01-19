@@ -57,6 +57,7 @@ Configure le projet pour un agent spécifique.
 - `auto` - Détection automatique (défaut)
 
 **Modes:**
+- `learning` - Apprentissage 📚
 - `light` - Prototypage rapide ⚡
 - `standard` - Développement quotidien ⚙️ (défaut)
 - `strict` - Production critique 🔒
@@ -443,13 +444,13 @@ Clique ou tape le nom de la commande !
 
 ## 📊 Comparaison des Modes
 
-| Commande | Light ⚡ | Standard ⚙️ | Strict 🔒 |
-|----------|---------|-------------|-----------|
-| `/governance_config` | ✅ | ✅ | ✅ |
-| `/governance_detect_mode` | ✅ | ✅ | ✅ |
-| `/governance_switch_mode` | ✅ | ✅ | ✅ |
-| `/governance_explain_mode` | 5 règles | 10 règles | 19 règles |
-| `/governance_install_hooks` | Checks basiques | Checks moyens | Checks complets |
+| Commande | Learning 📚 | Light ⚡ | Standard ⚙️ | Strict 🔒 |
+|----------|------------|---------|-------------|-----------|
+| `/governance_config` | ✅ | ✅ | ✅ | ✅ |
+| `/governance_detect_mode` | ✅ | ✅ | ✅ | ✅ |
+| `/governance_switch_mode` | ✅ | ✅ | ✅ | ✅ |
+| `/governance_explain_mode` | 7 règles | 5 règles | 10 règles | 19 règles |
+| `/governance_install_hooks` | Checks basiques | Checks basiques | Checks moyens | Checks complets |
 
 ---
 

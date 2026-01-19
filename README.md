@@ -35,12 +35,13 @@ Toi: /governance_config
 
 ---
 
-## 🎛️ Les 3 Modes
+## 🎛️ Les 4 Modes
 
-Le MCP supporte 3 niveaux de rigueur, adaptables par projet :
+Le MCP supporte 4 niveaux de rigueur, adaptables par projet :
 
 | Mode | Usage | Description |
 |---|---|---|
+| **📚 LEARNING** | Apprentissage | 7 règles pédagogiques. L'IA explique avant de coder. Idéal pour débutants. |
 | **⚡ LIGHT** | Prototypage | 5 règles essentielles. IA autonome et rapide. Idéal pour les POCs. |
 | **⚙️ STANDARD** | Quotidien | 10 règles équilibrées. Le bon compromis vitesse/qualité pour la plupart des projets. |
 | **🔒 STRICT** | Production | 19 règles complètes. Tests et types obligatoires. Contrôle total pour la prod critique. |
@@ -81,6 +82,7 @@ Affiche la liste de toutes les commandes disponibles.
 
 L'agent peut aussi lire directement ces ressources :
 - `governance://current` : Les règles actives du projet.
+- `governance://learning` : Les règles de référence du mode Learning.
 - `governance://standard` : Les règles de référence du mode Standard.
 - `governance://light` : Les règles de référence du mode Light.
 - `governance://strict` : Les règles de référence du mode Strict.
@@ -97,6 +99,7 @@ ai-governance-mcp/
 ├── src/
 │   └── index.js           # Serveur MCP
 ├── rules/
+│   ├── learning.md        # Règles mode Learning
 │   ├── light.md           # Règles mode Light
 │   ├── standard.md        # Règles mode Standard
 │   └── strict.md          # Règles mode Strict

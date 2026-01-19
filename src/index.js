@@ -222,6 +222,12 @@ npm test
             description: `Auto-injectées dans le system prompt - Mode ${currentMode}`,
           },
           {
+            uri: "governance://learning",
+            mimeType: "text/markdown",
+            name: "Règles mode LEARNING",
+            description: "Pour apprendre à coder (pédagogie)",
+          },
+          {
             uri: "governance://light",
             mimeType: "text/markdown",
             name: "Règles mode LIGHT",
@@ -264,7 +270,7 @@ npm test
           };
         }
 
-        if (["light", "standard", "strict"].includes(mode)) {
+        if (["learning", "light", "standard", "strict"].includes(mode)) {
           const content = await this.readRulesFile(mode);
 
           return {
@@ -308,7 +314,7 @@ npm test
               },
               {
                 name: "mode",
-                description: "Mode de gouvernance (light/standard/strict)",
+                description: "Mode de gouvernance (learning/light/standard/strict)",
                 required: false,
               },
             ],
@@ -325,7 +331,7 @@ npm test
             arguments: [
               {
                 name: "mode",
-                description: "Nouveau mode (light/standard/strict)",
+                description: "Nouveau mode (learning/light/standard/strict)",
                 required: true,
               },
             ],
@@ -485,7 +491,7 @@ Tape simplement: \`/governance_config agent=gemini\``,
                 type: "text",
                 text: `✅ **Projet configuré pour ${detectedAgent.toUpperCase()}**
 
-**Mode de gouvernance:** ${mode.toUpperCase()} ${mode === "light" ? "⚡" : mode === "standard" ? "⚙️" : "🔒"}
+**Mode de gouvernance:** ${mode.toUpperCase()} ${mode === "learning" ? "📚" : mode === "light" ? "⚡" : mode === "standard" ? "⚙️" : "🔒"}
 
 **Fichiers créés/mis à jour:**
 - \`${config.dir}/GOVERNANCE.md\` - Règles complètes du mode ${mode}
@@ -551,7 +557,7 @@ Les règles de gouvernance sont maintenant actives ! 🎉
                 text: `📋 **Configuration du projet**
 
 **Projet:** ${path.basename(cwd)}
-**Mode:** ${mode.toUpperCase()} ${mode === "light" ? "⚡" : mode === "standard" ? "⚙️" : "🔒"}
+**Mode:** ${mode.toUpperCase()} ${mode === "learning" ? "📚" : mode === "light" ? "⚡" : mode === "standard" ? "⚙️" : "🔒"}
 **Config MCP:** ${hasConfig ? "✅" : "⚠️ Par défaut"}${configInfo}
 
 **Commandes utiles:**
@@ -570,7 +576,7 @@ Les règles de gouvernance sont maintenant actives ! 🎉
       if (name === "switch_mode") {
         const newMode = args?.mode;
 
-        if (!newMode || !["light", "standard", "strict"].includes(newMode)) {
+        if (!newMode || !["learning", "light", "standard", "strict"].includes(newMode)) {
           return {
             messages: [
               {
@@ -583,6 +589,7 @@ Les règles de gouvernance sont maintenant actives ! 🎉
 \`/governance_switch_mode mode=strict\`
 
 **Modes valides:**
+- \`learning\` - Apprentissage 📚
 - \`light\` - Prototypage rapide ⚡
 - \`standard\` - Développement quotidien ⚙️
 - \`strict\` - Production critique 🔒`,
@@ -657,6 +664,12 @@ Les nouvelles règles sont maintenant actives. Tape \`/governance_explain_mode\`
         const rules = await this.readRulesFile(mode);
 
         const explanations = {
+          learning: {
+            emoji: "📚",
+            title: "LEARNING - Apprentissage",
+            summary:
+              "7 règles pédagogiques, l'IA explique avant de coder, idéal pour apprendre",
+          },
           light: {
             emoji: "⚡",
             title: "LIGHT - Prototypage rapide",
@@ -804,7 +817,7 @@ Puis relance: \`/governance_install_hooks\``,
 - \`/governance_init\` - Charge les règles de gouvernance au démarrage
 - \`/governance_config agent=gemini mode=standard\` - Configure le projet
   → Agents: claude, cursor, gemini, aider, continue, auto
-  → Modes: light, standard, strict
+  → Modes: learning, light, standard, strict
 
 **🔍 Information**
 - \`/governance_detect_mode\` - Affiche le mode actuel du projet
