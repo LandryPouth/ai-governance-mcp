@@ -95,10 +95,10 @@ Dans n'importe quel projet où vous voulez de la gouvernance IA :
 2. Lancez la commande de configuration :
 
 ```
-Toi: Utilise le tool config avec agent="auto" et mode="standard"
+Toi: /governance_config agent=gemini mode=standard
 ```
 
-### 2. Ce que fait la commande `config`
+### 2. Ce que fait la commande `/governance_config`
 
 L'agent va automatiquement :
 1. **Détecter votre environnement** (Claude, Gemini, Cursor, etc.).
@@ -117,7 +117,7 @@ git init
 gemini chat
 
 # 3. Configurez
-Toi: config agent=gemini mode=standard
+Toi: /governance_config agent=gemini mode=standard
 
 Gemini: ✅ Projet configuré pour GEMINI
 Mode: STANDARD ⚙️
@@ -138,11 +138,11 @@ Une fois configuré, vous avez accès à ces outils via votre agent :
 
 | Commande | Description |
 |---|---|
-| `config` | Configure ou reconfigure le projet (agent, mode). |
-| `detect_mode` | Affiche le mode actuel et l'état de la config. |
-| `switch_mode` | Change de mode (ex: standard -> strict) et met à jour les fichiers de règles localement. |
-| `install_hooks` | Installe les Git hooks pour vérifier les règles avant commit/push. |
-| `explain_mode` | Explique les différences entre les modes. |
+| `/governance_config` | Configure ou reconfigure le projet (agent, mode). |
+| `/governance_detect_mode` | Affiche le mode actuel et l'état de la config. |
+| `/governance_switch_mode` | Change de mode (ex: standard -> strict) et met à jour les fichiers de règles localement. |
+| `/governance_install_hooks` | Installe les Git hooks pour vérifier les règles avant commit/push. |
+| `/governance_explain_mode` | Explique les différences entre les modes. |
 
 ---
 
@@ -150,7 +150,7 @@ Une fois configuré, vous avez accès à ces outils via votre agent :
 
 ### L'agent ne voit pas les règles
 
-**Solution :** Demandez `detect_mode`. Si le fichier de règles est marqué manquant, relancez `config`.
+**Solution :** Lancez `/governance_detect_mode`. Si le fichier de règles est marqué manquant, relancez `/governance_config`.
 
 ### Les fichiers ne sont pas créés
 
@@ -158,4 +158,4 @@ Une fois configuré, vous avez accès à ces outils via votre agent :
 
 ### Je veux changer de mode
 
-**Solution :** Dites simplement à l'agent : *"Passe en mode strict"*. Il utilisera `switch_mode` pour mettre à jour la configuration `.ai-governance.json` ET le fichier de règles local `GOVERNANCE.md`.
+**Solution :** Lancez simplement : `/governance_switch_mode mode=strict`. Cela mettra à jour la configuration `.ai-governance.json` ET le fichier de règles local `GOVERNANCE.md`.

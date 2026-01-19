@@ -30,7 +30,7 @@ En résumé :
 
 ```bash
 # Commande magique pour configurer un projet
-Toi: Utilise config avec agent="auto" et mode="standard"
+Toi: /governance_config
 ```
 
 ---
@@ -47,39 +47,43 @@ Le MCP supporte 3 niveaux de rigueur, adaptables par projet :
 
 ---
 
-## 🛠️ Outils Disponibles
+## 💻 Commandes Disponibles (Prompts)
 
-Votre agent aura accès à ces outils via le protocole MCP :
+Votre agent aura accès à ces commandes via les Prompts MCP (Slash Commands) :
 
-### 1️⃣ `config` (Le plus important)
+### 1️⃣ `governance_config` (Le plus important)
 Configure automatiquement le projet actuel pour votre agent.
 - Crée les dossiers nécessaires (`.gemini/`, `.cursor/`, etc.).
 - Copie les règles de gouvernance locales.
 - Prépare le contexte pour que l'IA respecte les règles.
 
-### 2️⃣ `detect_mode`
+### 2️⃣ `governance_detect_mode`
 Affiche le mode actuel et vérifie si la configuration est valide.
 
-### 3️⃣ `switch_mode`
+### 3️⃣ `governance_switch_mode`
 Change le mode du projet (ex: Standard → Strict) et met à jour les fichiers de règles locaux.
 
-### 4️⃣ `install_hooks`
-Installe les Git Hooks (`pre-commit`, `commit-msg`, `pre-push`) pour forcer le respect des règles (tests qui passent, pas de secrets commités, etc.).
+### 4️⃣ `governance_install_hooks`
+Installe les Git Hooks (`pre-commit`, `commit-msg`, `pre-push`) pour forcer le respect des règles.
 
-### 5️⃣ `explain_mode`
+### 5️⃣ `governance_explain_mode`
 Fournit une explication détaillée du mode actuel à l'utilisateur.
+
+### 6️⃣ `governance_init`
+Charge automatiquement les règles de gouvernance au démarrage.
+
+### 7️⃣ `governance_help`
+Affiche la liste de toutes les commandes disponibles.
 
 ---
 
-## 📋 Ressources & Prompts
+## 📋 Ressources
 
 L'agent peut aussi lire directement ces ressources :
 - `governance://current` : Les règles actives du projet.
 - `governance://standard` : Les règles de référence du mode Standard.
-
-Et utiliser ces prompts :
-- `governance_autoload` : Injecte automatiquement les règles dans le contexte (utilisé par Claude).
-- `governance_explain` : Demande à l'IA d'expliquer les règles qu'elle suit.
+- `governance://light` : Les règles de référence du mode Light.
+- `governance://strict` : Les règles de référence du mode Strict.
 
 ---
 
