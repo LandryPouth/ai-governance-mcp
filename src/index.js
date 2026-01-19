@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 
 /**
- * AI Governance MCP Server - Version 2.0
+ * AI Governance MCP Server - Version 2.0 avec Slash Commands
  *
- * Fournit les règles de gouvernance de 2 manières :
- * 1. Auto-injection dans le system prompt (Claude Desktop)
- * 2. Génération de fichiers locaux (Cursor, Gemini, etc.)
+ * Utilise des prompts MCP pour créer des slash commands intuitives
+ * Exemple: /config, /detect_mode, /switch_mode, etc.
  */
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
@@ -29,7 +28,6 @@ const RULES_DIR = path.join(__dirname, "..", "rules");
 const HOOKS_DIR = path.join(__dirname, "..", "hooks");
 const PROJECT_CONFIG_FILE = ".ai-governance.json";
 
-// Map des agents supportés et leurs configs
 const AGENT_CONFIGS = {
   claude: { dir: ".claude", file: "CLAUDE.md" },
   cursor: { dir: ".cursor", file: "cursorrules" },
@@ -92,9 +90,6 @@ class AIGovernanceServer {
     return await fs.readFile(filePath, "utf-8");
   }
 
-  /**
-   * Détecte quel agent est utilisé en regardant les fichiers présents
-   */
   async detectAgent() {
     const cwd = process.cwd();
 
@@ -119,9 +114,6 @@ class AIGovernanceServer {
     return null;
   }
 
-  /**
-   * Configure le projet pour un agent spécifique
-   */
   async configureForAgent(agent, mode) {
     const cwd = process.cwd();
     const config = AGENT_CONFIGS[agent];
@@ -134,14 +126,11 @@ class AIGovernanceServer {
     const governanceFile = path.join(agentDir, "GOVERNANCE.md");
     const agentMainFile = path.join(cwd, config.file);
 
-    // 1. Crée le dossier de l'agent
     await fs.mkdir(agentDir, { recursive: true });
 
-    // 2. Copie les règles dans GOVERNANCE.md
     const rules = await this.readRulesFile(mode);
     await fs.writeFile(governanceFile, rules, "utf-8");
 
-    // 3. Gère le fichier principal de l'agent
     const header = this.generateHeader(agent, config.dir);
 
     const fileExists = await fs
@@ -150,11 +139,9 @@ class AIGovernanceServer {
       .catch(() => false);
 
     if (!fileExists) {
-      // Crée un nouveau fichier avec template
       const template = this.generateTemplate(agent, config.dir);
       await fs.writeFile(agentMainFile, header + "\n\n" + template, "utf-8");
     } else {
-      // Ajoute juste le header si pas déjà présent
       const content = await fs.readFile(agentMainFile, "utf-8");
 
       if (!content.includes("GOVERNANCE.md")) {
@@ -162,7 +149,6 @@ class AIGovernanceServer {
       }
     }
 
-    // 4. Sauvegarde la config
     await this.saveProjectMode(mode);
 
     return {
@@ -174,9 +160,6 @@ class AIGovernanceServer {
     };
   }
 
-  /**
-   * Génère le header pour le fichier de l'agent
-   */
   generateHeader(agent, dir) {
     return `# Project Overview
 
@@ -187,9 +170,6 @@ This project uses AI Governance rules to ensure consistent development practices
 > Do not proceed with any code modification until you have ingested these rules.`;
   }
 
-  /**
-   * Génère un template de base pour le fichier de l'agent
-   */
   generateTemplate(agent, dir) {
     return `## Project Description
 
@@ -303,21 +283,75 @@ npm test
     );
 
     // ==================================================================
-    // PROMPTS - Auto-injection au démarrage
+    // PROMPTS - SLASH COMMANDS
     // ==================================================================
 
     this.server.setRequestHandler(ListPromptsRequestSchema, async () => {
       return {
         prompts: [
           {
-            name: "governance_autoload",
+            name: "governance_init",
             description:
-              "🤖 CHARGE AUTOMATIQUEMENT les règles de gouvernance au démarrage",
+              "Charge automatiquement les règles de gouvernance au démarrage",
             arguments: [],
           },
           {
-            name: "governance_explain",
-            description: "Explique les règles du mode actuel",
+            name: "governance_config",
+            description:
+              "Configure le projet pour un agent (Claude, Cursor, Gemini, etc.)",
+            arguments: [
+              {
+                name: "agent",
+                description:
+                  "Agent à configurer (claude/cursor/gemini/aider/continue/auto)",
+                required: false,
+              },
+              {
+                name: "mode",
+                description: "Mode de gouvernance (light/standard/strict)",
+                required: false,
+              },
+            ],
+          },
+          {
+            name: "governance_detect_mode",
+            description:
+              "Affiche le mode de gouvernance actuel du projet",
+            arguments: [],
+          },
+          {
+            name: "governance_switch_mode",
+            description: "Change le mode de gouvernance",
+            arguments: [
+              {
+                name: "mode",
+                description: "Nouveau mode (light/standard/strict)",
+                required: true,
+              },
+            ],
+          },
+          {
+            name: "governance_explain_mode",
+            description:
+              "Explique le mode actuel et ses règles",
+            arguments: [],
+          },
+          {
+            name: "governance_install_hooks",
+            description:
+              "Installe les git hooks pour vérifier les règles",
+            arguments: [
+              {
+                name: "force",
+                description: "Écraser les hooks existants (true/false)",
+                required: false,
+              },
+            ],
+          },
+          {
+            name: "governance_help",
+            description:
+              "Affiche la liste des commandes disponibles",
             arguments: [],
           },
         ],
@@ -325,11 +359,16 @@ npm test
     });
 
     this.server.setRequestHandler(GetPromptRequestSchema, async (request) => {
-      const { name } = request.params;
-      const currentMode = await this.detectProjectMode();
-      const rules = await this.readRulesFile(currentMode);
+      const { name: fullPromptName, arguments: args } = request.params;
+      const name = fullPromptName.replace("governance_", "");
 
-      if (name === "governance_autoload") {
+      // ==================================================================
+      // /init - Auto-charge les règles
+      // ==================================================================
+      if (name === "init") {
+        const currentMode = await this.detectProjectMode();
+        const rules = await this.readRulesFile(currentMode);
+
         return {
           messages: [
             {
@@ -358,191 +397,93 @@ Before proceeding with any task, confirm that you have:
 2. ✅ Understood the current mode (${currentMode})
 3. ✅ Will apply these rules to every interaction
 
-If you understand and will follow these rules, respond with:
+Respond with:
 "✅ Governance rules loaded (${currentMode} mode). Ready to assist."
 
-Otherwise, ask for clarification on any rule you don't understand.`,
+**Available commands:**
+- \`/config\` - Configure project for your agent
+- \`/detect_mode\` - Check current mode
+- \`/switch_mode\` - Change governance mode
+- \`/explain_mode\` - Explain current rules
+- \`/install_hooks\` - Install git hooks
+- \`/help\` - Show all commands`,
               },
             },
           ],
         };
       }
 
-      if (name === "governance_explain") {
+      // ==================================================================
+      // /config - Configure le projet
+      // ==================================================================
+      if (name === "config") {
+        const agent = args?.agent || "auto";
+        const mode = args?.mode || "standard";
+
+        let detectedAgent = agent;
+
+        if (agent === "auto") {
+          const detected = await this.detectAgent();
+          if (!detected) {
+            return {
+              messages: [
+                {
+                  role: "user",
+                  content: {
+                    type: "text",
+                    text: `❌ **Impossible de détecter l'agent automatiquement**
+
+Aucun fichier de configuration d'agent détecté dans ce projet.
+
+**Agents supportés:**
+- \`claude\` - Claude Desktop
+- \`cursor\` - Cursor IDE
+- \`gemini\` - Gemini CLI
+- \`aider\` - Aider
+- \`continue\` - Continue
+
+**Usage:**
+\`/config agent=gemini mode=standard\`
+
+**Exemple:**
+Tape simplement: \`/config agent=gemini\``,
+                  },
+                },
+              ],
+            };
+          }
+          detectedAgent = detected;
+        }
+
+        if (!AGENT_CONFIGS[detectedAgent]) {
+          return {
+            messages: [
+              {
+                role: "user",
+                content: {
+                  type: "text",
+                  text: `❌ Agent non supporté: ${detectedAgent}
+
+**Agents valides:** ${Object.keys(AGENT_CONFIGS).join(", ")}
+
+**Usage:**
+\`/config agent=gemini mode=standard\``,
+                },
+              },
+            ],
+          };
+        }
+
+        const result = await this.configureForAgent(detectedAgent, mode);
+        const config = AGENT_CONFIGS[detectedAgent];
+
         return {
           messages: [
             {
               role: "user",
               content: {
                 type: "text",
-                text: `Explique-moi les règles de gouvernance du mode ${currentMode} avec des exemples concrets.`,
-              },
-            },
-          ],
-        };
-      }
-
-      throw new Error(`Prompt inconnu: ${name}`);
-    });
-
-    // ==================================================================
-    // TOOLS
-    // ==================================================================
-
-    this.server.setRequestHandler(ListToolsRequestSchema, async () => {
-      return {
-        tools: [
-          {
-            name: "config",
-            description:
-              "🔧 Configure le projet pour un agent spécifique (Claude, Cursor, Gemini, etc.)",
-            inputSchema: {
-              type: "object",
-              properties: {
-                agent: {
-                  type: "string",
-                  enum: [
-                    "claude",
-                    "cursor",
-                    "gemini",
-                    "aider",
-                    "continue",
-                    "auto",
-                  ],
-                  description:
-                    "L'agent à configurer ('auto' pour détection automatique)",
-                  default: "auto",
-                },
-                mode: {
-                  type: "string",
-                  enum: ["light", "standard", "strict"],
-                  description: "Le mode de gouvernance",
-                  default: "standard",
-                },
-              },
-            },
-          },
-          {
-            name: "detect_mode",
-            description: "Détecte le mode de gouvernance actuel",
-            inputSchema: {
-              type: "object",
-              properties: {},
-            },
-          },
-          {
-            name: "switch_mode",
-            description: "Change le mode de gouvernance",
-            inputSchema: {
-              type: "object",
-              properties: {
-                mode: {
-                  type: "string",
-                  enum: ["light", "standard", "strict"],
-                },
-                update_files: {
-                  type: "boolean",
-                  description: "Mettre à jour les fichiers de config locaux",
-                  default: true,
-                },
-              },
-              required: ["mode"],
-            },
-          },
-          {
-            name: "install_hooks",
-            description: "Installe les git hooks",
-            inputSchema: {
-              type: "object",
-              properties: {
-                force: {
-                  type: "boolean",
-                  default: false,
-                },
-              },
-            },
-          },
-          {
-            name: "explain_mode",
-            description: "Explique le mode actuel",
-            inputSchema: {
-              type: "object",
-              properties: {},
-            },
-          },
-        ],
-      };
-    });
-
-    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
-      const { name, arguments: args } = request.params;
-
-      // ============================================================
-      // TOOL: config (NOUVEAU - LE PLUS IMPORTANT)
-      // ============================================================
-      if (name === "config") {
-        const { agent: requestedAgent = "auto", mode = "standard" } =
-          args || {};
-
-        let agent = requestedAgent;
-
-        // Détection automatique si demandé
-        if (agent === "auto") {
-          const detected = await this.detectAgent();
-          if (detected) {
-            agent = detected;
-          } else {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `❌ **Impossible de détecter l'agent automatiquement**
-
-Aucun fichier de configuration d'agent détecté dans ce projet.
-
-**Agents supportés:**
-- \`claude\` - Claude Desktop (.claude/)
-- \`cursor\` - Cursor IDE (.cursor/)
-- \`gemini\` - Gemini CLI (.gemini/)
-- \`aider\` - Aider (.aider/)
-- \`continue\` - Continue (.continue/)
-
-**Usage:**
-Spécifie l'agent manuellement:
-\`\`\`
-config(agent="gemini", mode="standard")
-\`\`\``,
-                },
-              ],
-              isError: true,
-            };
-          }
-        }
-
-        // Vérifie que l'agent est supporté
-        if (!AGENT_CONFIGS[agent]) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `❌ Agent non supporté: ${agent}
-
-Agents valides: ${Object.keys(AGENT_CONFIGS).join(", ")}`,
-              },
-            ],
-            isError: true,
-          };
-        }
-
-        // Configure le projet
-        const result = await this.configureForAgent(agent, mode);
-        const config = AGENT_CONFIGS[agent];
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: `✅ **Projet configuré pour ${agent.toUpperCase()}**
+                text: `✅ **Projet configuré pour ${detectedAgent.toUpperCase()}**
 
 **Mode de gouvernance:** ${mode.toUpperCase()} ${mode === "light" ? "⚡" : mode === "standard" ? "⚙️" : "🔒"}
 
@@ -550,56 +491,26 @@ Agents valides: ${Object.keys(AGENT_CONFIGS).join(", ")}`,
 - \`${config.dir}/GOVERNANCE.md\` - Règles complètes du mode ${mode}
 - \`${config.file}\` - ${result.created ? "Créé avec template" : "Header ajouté"}
 
-**Structure:**
-\`\`\`
-projet/
-├── ${config.dir}/
-│   └── GOVERNANCE.md    ← Règles de gouvernance
-├── ${config.file}       ← Fichier principal de l'agent
-└── .ai-governance.json  ← Configuration MCP
-\`\`\`
-
-${
-  agent === "cursor"
-    ? `
-**Pour Cursor:**
-Les règles dans \`.cursor/GOVERNANCE.md\` seront automatiquement lues.
-Le fichier \`cursorrules\` sera utilisé comme contexte de base.
-`
-    : agent === "gemini"
-      ? `
-**Pour Gemini CLI:**
-Les règles sont dans \`.gemini/GOVERNANCE.md\`.
-Le fichier \`GEMINI.md\` contient le contexte du projet.
-
-Lance Gemini avec:
-\`\`\`bash
-gemini chat
-\`\`\`
-`
-      : agent === "claude"
-        ? `
-**Pour Claude Desktop:**
-Les règles sont dans \`.claude/GOVERNANCE.md\`.
-Le MCP les charge automatiquement via le prompt \`governance_autoload\`.
-`
-        : ""
-}
-
-**Prochaines étapes recommandées:**
+**Prochaines étapes:**
 1. Révise \`${config.file}\` et complète les informations du projet
 2. Lis \`${config.dir}/GOVERNANCE.md\` pour comprendre les règles
-3. Installe les git hooks: \`install_hooks()\`
+3. Installe les git hooks: \`/install_hooks\`
 
-Les règles de gouvernance sont maintenant actives ! 🎉`,
+Les règles de gouvernance sont maintenant actives ! 🎉
+
+**Autres commandes utiles:**
+- \`/detect_mode\` - Vérifier le mode actuel
+- \`/explain_mode\` - Comprendre les règles
+- \`/help\` - Voir toutes les commandes`,
+              },
             },
           ],
         };
       }
 
-      // ============================================================
-      // TOOL: detect_mode
-      // ============================================================
+      // ==================================================================
+      // /detect_mode - Détecte le mode actuel
+      // ==================================================================
       if (name === "detect_mode") {
         const cwd = process.cwd();
         const mode = await this.detectProjectMode();
@@ -623,89 +534,182 @@ Les règles de gouvernance sont maintenant actives ! 🎉`,
             .then(() => true)
             .catch(() => false);
 
-          configInfo = `\n**Agent détecté:** ${agent}`;
+          configInfo = `\n**Agent détecté:** ${agent.toUpperCase()}`;
           configInfo += `\n**Fichier de règles:** ${hasGov ? "✅" : "❌"} \`${agentConfig.dir}/GOVERNANCE.md\``;
 
           if (!hasGov) {
-            configInfo += `\n\n⚠️ Fichier de règles manquant. Lance \`config(agent="${agent}")\` pour le créer.`;
+            configInfo += `\n\n⚠️ Fichier de règles manquant. Lance \`/config agent=${agent}\` pour le créer.`;
           }
         }
 
         return {
-          content: [
+          messages: [
             {
-              type: "text",
-              text: `📋 **Configuration du projet**
+              role: "user",
+              content: {
+                type: "text",
+                text: `📋 **Configuration du projet**
 
 **Projet:** ${path.basename(cwd)}
 **Mode:** ${mode.toUpperCase()} ${mode === "light" ? "⚡" : mode === "standard" ? "⚙️" : "🔒"}
-**Config MCP:** ${hasConfig ? "✅" : "⚠️ Par défaut"}${configInfo}`,
+**Config MCP:** ${hasConfig ? "✅" : "⚠️ Par défaut"}${configInfo}
+
+**Commandes utiles:**
+- \`/switch_mode mode=strict\` - Changer de mode
+- \`/explain_mode\` - Comprendre les règles
+- \`/install_hooks\` - Installer les git hooks`,
+              },
             },
           ],
         };
       }
 
-      // ============================================================
-      // TOOL: switch_mode (AMÉLIORÉ)
-      // ============================================================
+      // ==================================================================
+      // /switch_mode - Change le mode
+      // ==================================================================
       if (name === "switch_mode") {
-        const { mode, update_files = true } = args;
-        const oldMode = await this.detectProjectMode();
+        const newMode = args?.mode;
 
-        if (mode === oldMode) {
+        if (!newMode || !["light", "standard", "strict"].includes(newMode)) {
           return {
-            content: [
+            messages: [
               {
-                type: "text",
-                text: `ℹ️ Le projet est déjà en mode **${mode.toUpperCase()}**.`,
+                role: "user",
+                content: {
+                  type: "text",
+                  text: `❌ **Mode invalide**
+
+**Usage:**
+\`/switch_mode mode=strict\`
+
+**Modes valides:**
+- \`light\` - Prototypage rapide ⚡
+- \`standard\` - Développement quotidien ⚙️
+- \`strict\` - Production critique 🔒`,
+                },
               },
             ],
           };
         }
 
-        await this.saveProjectMode(mode);
+        const oldMode = await this.detectProjectMode();
+
+        if (newMode === oldMode) {
+          return {
+            messages: [
+              {
+                role: "user",
+                content: {
+                  type: "text",
+                  text: `ℹ️ Le projet est déjà en mode **${newMode.toUpperCase()}**.
+
+**Autres commandes:**
+- \`/detect_mode\` - Voir le statut actuel
+- \`/explain_mode\` - Comprendre les règles`,
+                },
+              },
+            ],
+          };
+        }
+
+        await this.saveProjectMode(newMode);
 
         let filesUpdated = [];
+        const agent = await this.detectAgent();
+        if (agent) {
+          const agentConfig = AGENT_CONFIGS[agent];
+          const governanceFile = path.join(
+            process.cwd(),
+            agentConfig.dir,
+            "GOVERNANCE.md",
+          );
+          const rules = await this.readRulesFile(newMode);
 
-        // Met à jour les fichiers locaux si configuré
-        if (update_files) {
-          const agent = await this.detectAgent();
-          if (agent) {
-            const agentConfig = AGENT_CONFIGS[agent];
-            const governanceFile = path.join(
-              process.cwd(),
-              agentConfig.dir,
-              "GOVERNANCE.md",
-            );
-            const rules = await this.readRulesFile(mode);
-
-            await fs.writeFile(governanceFile, rules, "utf-8");
-            filesUpdated.push(`${agentConfig.dir}/GOVERNANCE.md`);
-          }
+          await fs.writeFile(governanceFile, rules, "utf-8");
+          filesUpdated.push(`${agentConfig.dir}/GOVERNANCE.md`);
         }
 
         return {
-          content: [
+          messages: [
             {
-              type: "text",
-              text: `✅ **Mode changé: ${oldMode.toUpperCase()} → ${mode.toUpperCase()}**
+              role: "user",
+              content: {
+                type: "text",
+                text: `✅ **Mode changé: ${oldMode.toUpperCase()} → ${newMode.toUpperCase()}**
 
 **Fichiers mis à jour:**
 ${filesUpdated.length > 0 ? filesUpdated.map((f) => `- ${f}`).join("\n") : "- .ai-governance.json uniquement"}
 
-${mode === "strict" ? "\n⚠️ **Mode STRICT activé** - Installe les git hooks: `install_hooks()`" : ""}
+${newMode === "strict" ? "\n⚠️ **Mode STRICT activé** - Installe les git hooks: `/install_hooks`" : ""}
 
-Les nouvelles règles sont maintenant actives.`,
+Les nouvelles règles sont maintenant actives. Tape \`/explain_mode\` pour les découvrir.`,
+              },
             },
           ],
         };
       }
 
-      // ============================================================
-      // TOOL: install_hooks
-      // ============================================================
+      // ==================================================================
+      // /explain_mode - Explique le mode actuel
+      // ==================================================================
+      if (name === "explain_mode") {
+        const mode = await this.detectProjectMode();
+        const rules = await this.readRulesFile(mode);
+
+        const explanations = {
+          light: {
+            emoji: "⚡",
+            title: "LIGHT - Prototypage rapide",
+            summary:
+              "5 règles essentielles, IA autonome, idéal pour side projects et expérimentation",
+          },
+          standard: {
+            emoji: "⚙️",
+            title: "STANDARD - Développement quotidien",
+            summary:
+              "10 règles équilibrées, balance vitesse/qualité, pour projets maintenus",
+          },
+          strict: {
+            emoji: "🔒",
+            title: "STRICT - Production critique",
+            summary:
+              "19 règles complètes, contrôle total, pour applications critiques et grandes équipes",
+          },
+        };
+
+        const current = explanations[mode];
+
+        return {
+          messages: [
+            {
+              role: "user",
+              content: {
+                type: "text",
+                text: `${current.emoji} **Mode ${mode.toUpperCase()}**
+
+${current.summary}
+
+---
+
+${rules}
+
+---
+
+**Commandes utiles:**
+- \`/switch_mode mode=autre\` - Changer de mode
+- \`/install_hooks\` - Installer les git hooks
+- \`/detect_mode\` - Voir le statut`,
+              },
+            },
+          ],
+        };
+      }
+
+      // ==================================================================
+      // /install_hooks - Installe les git hooks
+      // ==================================================================
       if (name === "install_hooks") {
-        const { force = false } = args || {};
+        const force = args?.force === "true" || args?.force === true;
         const cwd = process.cwd();
         const gitHooksDir = path.join(cwd, ".git", "hooks");
         const mode = await this.detectProjectMode();
@@ -714,13 +718,22 @@ Les nouvelles règles sont maintenant actives.`,
           await fs.access(path.join(cwd, ".git"));
         } catch {
           return {
-            content: [
+            messages: [
               {
-                type: "text",
-                text: `❌ Pas un dépôt Git. Initialise avec \`git init\``,
+                role: "user",
+                content: {
+                  type: "text",
+                  text: `❌ **Pas un dépôt Git**
+
+Initialise d'abord Git avec:
+\`\`\`bash
+git init
+\`\`\`
+
+Puis relance: \`/install_hooks\``,
+                },
               },
             ],
-            isError: true,
           };
         }
 
@@ -755,65 +768,137 @@ Les nouvelles règles sont maintenant actives.`,
         }
 
         if (skipped.length > 0) {
-          message += `**Ignorés:**\n${skipped.map((h) => `- ${h}`).join("\n")}\n`;
+          message += `**Ignorés (déjà présents):**\n${skipped.map((h) => `- ${h}`).join("\n")}\n\n`;
+          message += "Pour écraser: `/install_hooks force=true`\n\n";
         }
 
-        message += `\n**Mode:** ${mode.toUpperCase()}\n`;
-        message += `Les hooks vérifient maintenant le respect des règles.`;
+        message += `**Mode:** ${mode.toUpperCase()}\n`;
+        message += `Les hooks vérifient maintenant le respect des règles à chaque commit et push.`;
 
         return {
-          content: [{ type: "text", text: message }],
-        };
-      }
-
-      // ============================================================
-      // TOOL: explain_mode
-      // ============================================================
-      if (name === "explain_mode") {
-        const mode = await this.detectProjectMode();
-
-        const explanations = {
-          light: {
-            emoji: "⚡",
-            title: "LIGHT - Prototypage rapide",
-            description: "5 règles essentielles, IA autonome",
-          },
-          standard: {
-            emoji: "⚙️",
-            title: "STANDARD - Développement quotidien",
-            description: "10 règles équilibrées, vitesse/qualité",
-          },
-          strict: {
-            emoji: "🔒",
-            title: "STRICT - Production critique",
-            description: "19 règles complètes, contrôle total",
-          },
-        };
-
-        const current = explanations[mode];
-
-        return {
-          content: [
+          messages: [
             {
-              type: "text",
-              text: `${current.emoji} **Mode ${mode.toUpperCase()}**
-
-${current.description}
-
-Pour changer: \`switch_mode(mode="autre_mode")\``,
+              role: "user",
+              content: {
+                type: "text",
+                text: message,
+              },
             },
           ],
         };
       }
 
-      throw new Error(`Tool inconnu: ${name}`);
+      // ==================================================================
+      // /help - Liste toutes les commandes
+      // ==================================================================
+      if (name === "help") {
+        return {
+          messages: [
+            {
+              role: "user",
+              content: {
+                type: "text",
+                text: `📚 **AI Governance MCP - Commandes disponibles**
+
+**🚀 Setup & Configuration**
+- \`/init\` - Charge les règles de gouvernance au démarrage
+- \`/config agent=gemini mode=standard\` - Configure le projet
+  → Agents: claude, cursor, gemini, aider, continue, auto
+  → Modes: light, standard, strict
+
+**🔍 Information**
+- \`/detect_mode\` - Affiche le mode actuel du projet
+- \`/explain_mode\` - Explique les règles du mode actuel
+
+**🔄 Modification**
+- \`/switch_mode mode=strict\` - Change le mode de gouvernance
+- \`/install_hooks\` - Installe les git hooks
+- \`/install_hooks force=true\` - Force l'installation
+
+**❓ Aide**
+- \`/help\` - Affiche cette aide
+
+---
+
+**Workflow type:**
+
+1. **Nouveau projet:**
+   \`\`\`
+   /config agent=gemini mode=standard
+   /install_hooks
+   \`\`\`
+
+2. **Projet existant:**
+   \`\`\`
+   /detect_mode
+   /explain_mode
+   \`\`\`
+
+3. **Changer de mode:**
+   \`\`\`
+   /switch_mode mode=strict
+   \`\`\`
+
+---
+
+**Raccourcis:**
+- \`/config\` seul = détection auto de l'agent
+- Mode par défaut = standard`,
+              },
+            },
+          ],
+        };
+      }
+
+      throw new Error(`Prompt inconnu: ${name}`);
+    });
+
+    // ==================================================================
+    // TOOLS - Gardés pour rétro-compatibilité mais découragés
+    // ==================================================================
+
+    this.server.setRequestHandler(ListToolsRequestSchema, async () => {
+      return {
+        tools: [
+          {
+            name: "_deprecated_use_slash_commands",
+            description:
+              "⚠️ Les tools sont dépréciés. Utilisez les slash commands: /config, /detect_mode, /switch_mode, /explain_mode, /install_hooks, /help",
+            inputSchema: {
+              type: "object",
+              properties: {},
+            },
+          },
+        ],
+      };
+    });
+
+    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `⚠️ **Les tools sont dépréciés**
+
+Utilisez maintenant les **slash commands** à la place:
+
+- \`/config\` au lieu de \`config()\`
+- \`/detect_mode\` au lieu de \`detect_mode()\`
+- \`/switch_mode mode=strict\` au lieu de \`switch_mode()\`
+- \`/explain_mode\` au lieu de \`explain_mode()\`
+- \`/install_hooks\` au lieu de \`install_hooks()\`
+
+Tape \`/help\` pour voir toutes les commandes disponibles.`,
+          },
+        ],
+      };
     });
   }
 
   async run() {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
-    console.error("AI Governance MCP Server v2.0 running");
+    console.error("AI Governance MCP Server v2.0 running with slash commands");
   }
 }
 
